@@ -42,18 +42,11 @@ export default function StatsCards() {
       icon: 'fas fa-trophy',
       color: 'text-warning',
       testId: 'stat-eligible'
-    },
-    {
-      title: 'Success Rate',
-      value: `${stats?.successRate || 0}%`,
-      icon: 'fas fa-percentage',
-      color: 'text-secondary',
-      testId: 'stat-success-rate'
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-8">
       {statsData.map((stat) => (
         <Card key={stat.title} className="hover:shadow-md transition-shadow">
           <CardContent className="p-5">
