@@ -1,42 +1,39 @@
--- Create users table
+-- Create users table (matching the actual schema)
 CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
-  discord_id VARCHAR(255) UNIQUE NOT NULL,
-  username VARCHAR(255) NOT NULL,
-  retro_achievements_username VARCHAR(255),
-  score INTEGER DEFAULT 0,
-  prize_eligible BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  discord_id TEXT UNIQUE NOT NULL,
+  username TEXT NOT NULL,
+  retro_achievements_username TEXT,
+  score INTEGER DEFAULT 0 NOT NULL,
+  prize_eligible BOOLEAN DEFAULT false NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  last_submission TIMESTAMP
 );
 
--- Create submissions table
+-- Create submissions table (matching the actual schema)
 CREATE TABLE IF NOT EXISTS submissions (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
-  wordle_date DATE NOT NULL,
-  achievement_urls TEXT[] NOT NULL,
-  achievement_ids TEXT[] NOT NULL,
-  achievement_titles TEXT[] NOT NULL,
-  letters VARCHAR(5) NOT NULL,
-  is_valid BOOLEAN DEFAULT false,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(user_id, wordle_date)
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id VARCHAR NOT NULL REFERENCES users(id),
+  wordle_date TEXT NOT NULL,
+  wordle_solution TEXT NOT NULL,
+  achievements JSONB NOT NULL,
+  is_valid BOOLEAN NOT NULL,
+  validation_details JSONB,
+  submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
--- Create wordle_solutions table
+-- Create wordle_solutions table (matching the actual schema)
 CREATE TABLE IF NOT EXISTS wordle_solutions (
-  id SERIAL PRIMARY KEY,
-  date DATE UNIQUE NOT NULL,
-  solution VARCHAR(5) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  date TEXT UNIQUE NOT NULL,
+  solution TEXT NOT NULL,
+  fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
--- Create bot_config table
+-- Create bot_config table (matching the actual schema)
 CREATE TABLE IF NOT EXISTS bot_config (
-  id SERIAL PRIMARY KEY,
-  key VARCHAR(255) UNIQUE NOT NULL,
-  value TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT UNIQUE NOT NULL,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
