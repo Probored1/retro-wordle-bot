@@ -332,11 +332,52 @@ class DiscordBot {
       }
     };
 
+    // Reset command for testing (admin only)
+    const resetCommand = {
+      data: new SlashCommandBuilder()
+        .setName('reset')
+        .setDescription('Reset your submission for today (testing only)')
+        .addBooleanOption(option =>
+          option.setName('confirm')
+            .setDescription('Confirm you want to reset today\'s submission')
+            .setRequired(true)),
+      async execute(interaction: any) {
+        await interaction.deferReply({ ephemeral: true });
+
+        try {
+          const confirm = interaction.options.getBoolean('confirm');
+          if (!confirm) {
+            await interaction.editReply('❌ Reset cancelled. Set confirm to true to reset your submission.');
+            return;
+          }
+
+          const user = await storage.getUserByDiscordId(interaction.user.id);
+          if (!user) {
+            await interaction.editReply('❌ You haven\'t participated in the event yet!');
+            return;
+          }
+
+          const today = new Date().toISOString().split('T')[0];
+          const deleted = await storage.deleteUserSubmissionForDate(user.id, today);
+          
+          if (deleted) {
+            await interaction.editReply('✅ Your submission for today has been reset. You can now submit again with `/submit`.');
+          } else {
+            await interaction.editReply('❌ No submission found for today to reset.');
+          }
+        } catch (error) {
+          console.error('Error resetting submission:', error);
+          await interaction.editReply('❌ An error occurred while resetting your submission.');
+        }
+      }
+    };
+
     this.commands.set('submit', submitCommand);
     this.commands.set('stats', statsCommand);
     this.commands.set('leaderboard', leaderboardCommand);
     this.commands.set('help', helpCommand);
     this.commands.set('wordle', wordleCommand);
+    this.commands.set('reset', resetCommand);
   }
 
   private setupEventHandlers() {

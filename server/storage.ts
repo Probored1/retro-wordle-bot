@@ -26,6 +26,7 @@ interface IStorage {
   // Submission methods
   createSubmission(insertSubmission: InsertSubmission): Promise<Submission>;
   getUserSubmissionForDate(userId: string, date: string): Promise<Submission | undefined>;
+  deleteUserSubmissionForDate(userId: string, date: string): Promise<boolean>;
   getUserSubmissions(userId: string): Promise<Submission[]>;
   getRecentSubmissions(limit: number): Promise<Submission[]>;
   getSubmissions(page: number, limit: number): Promise<Submission[]>;
@@ -94,6 +95,13 @@ export class DatabaseStorage implements IStorage {
       .from(submissions)
       .where(and(eq(submissions.userId, userId), eq(submissions.wordleDate, date)));
     return submission || undefined;
+  }
+
+  async deleteUserSubmissionForDate(userId: string, date: string): Promise<boolean> {
+    const result = await db
+      .delete(submissions)
+      .where(and(eq(submissions.userId, userId), eq(submissions.wordleDate, date)));
+    return result.rowCount > 0;
   }
 
   async getUserSubmissions(userId: string): Promise<Submission[]> {
