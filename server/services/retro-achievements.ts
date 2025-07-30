@@ -12,6 +12,12 @@ interface Achievement {
   badgeName: string;
 }
 
+interface UserAchievementUnlock {
+  user: string;
+  dateEarned: string;
+  hardcoreMode: boolean;
+}
+
 class RetroAchievementsService {
   private baseUrl = 'https://retroachievements.org/API';
   private username: string;
@@ -86,6 +92,69 @@ class RetroAchievementsService {
     } catch (error) {
       console.error('Error validating achievement:', error);
       return false;
+    }
+  }
+
+  async checkUserEarnedAchievementToday(username: string, achievementId: string, targetDate: string): Promise<boolean> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/API_GetAchievementUnlocks.php`, {
+        params: {
+          ...this.getAuthParams(),
+          a: achievementId
+        },
+        timeout: 10000
+      });
+
+      if (response.data && response.data.RecentWinners) {
+        const recentWinners = response.data.RecentWinners || [];
+        
+        // Check if the user earned this achievement on the target date
+        const userUnlock = recentWinners.find((winner: any) => 
+          winner.User === username && 
+          winner.DateEarned?.startsWith(targetDate)
+        );
+        
+        return !!userUnlock;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error checking user achievement unlock date:', error);
+      return false;
+    }
+  }
+
+  async validateUserAchievementToday(username: string, url: string, targetDate: string): Promise<{ valid: boolean; achievement: Achievement | null }> {
+    try {
+      // First check if URL format is valid
+      if (!this.isValidRetroAchievementsUrl(url)) {
+        return { valid: false, achievement: null };
+      }
+
+      // Extract achievement ID
+      const achievementIdMatch = url.match(/\/achievement\/(\d+)/);
+      if (!achievementIdMatch) {
+        return { valid: false, achievement: null };
+      }
+
+      const achievementId = achievementIdMatch[1];
+      
+      // Get achievement details
+      const achievement = await this.getAchievement(achievementId);
+      if (!achievement) {
+        return { valid: false, achievement: null };
+      }
+
+      // Check if user earned it today
+      const earnedToday = await this.checkUserEarnedAchievementToday(username, achievementId, targetDate);
+      
+      return { 
+        valid: earnedToday, 
+        achievement: earnedToday ? achievement : null 
+      };
+    } catch (error) {
+      console.error('Error validating user achievement today:', error);
+      return { valid: false, achievement: null };
     }
   }
 

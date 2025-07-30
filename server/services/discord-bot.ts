@@ -61,23 +61,42 @@ class DiscordBot {
             return;
           }
 
-          // Validate achievements
+          // Validate achievements - must be earned today
           const achievements = [];
           const errors = [];
           const validLetters = [];
+          const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
           for (let i = 0; i < achievementUrls.length; i++) {
             const url = achievementUrls[i];
             const letter = wordleSolution.solution[i].toLowerCase();
 
             try {
-              const achievement = await retroAchievementsService.getAchievementFromUrl(url);
-              if (!achievement) {
-                errors.push(`Achievement ${i + 1}: Invalid URL or achievement not found`);
+              // Validate URL format first
+              if (!retroAchievementsService.isValidRetroAchievementsUrl(url)) {
+                errors.push(`Achievement ${i + 1}: Invalid RetroAchievements URL format`);
                 continue;
               }
 
+              // Check if user earned this achievement today
+              const validation = await retroAchievementsService.validateUserAchievementToday(
+                interaction.user.username, 
+                url, 
+                today
+              );
+
+              if (!validation.valid || !validation.achievement) {
+                if (!validation.achievement) {
+                  errors.push(`Achievement ${i + 1}: Achievement not found or invalid URL`);
+                } else {
+                  errors.push(`Achievement ${i + 1}: You must earn "${validation.achievement.title}" today (${today}) to submit it`);
+                }
+                continue;
+              }
+
+              const achievement = validation.achievement;
               const achievementFirstLetter = achievement.title.charAt(0).toLowerCase();
+              
               if (achievementFirstLetter === letter) {
                 validLetters.push(letter.toUpperCase());
                 achievements.push({
@@ -90,7 +109,8 @@ class DiscordBot {
                 errors.push(`Achievement ${i + 1}: "${achievement.title}" starts with "${achievement.title.charAt(0).toUpperCase()}" but needs "${letter.toUpperCase()}"`);
               }
             } catch (error) {
-              errors.push(`Achievement ${i + 1}: Failed to validate URL`);
+              console.error(`Error validating achievement ${i + 1}:`, error);
+              errors.push(`Achievement ${i + 1}: Failed to validate - please try again`);
             }
           }
 
@@ -106,7 +126,6 @@ class DiscordBot {
           }
 
           // Check if user already submitted today
-          const today = new Date().toISOString().split('T')[0];
           const existingSubmission = await storage.getUserSubmissionForDate(user.id, today);
           if (existingSubmission) {
             await interaction.editReply('❌ You have already submitted for today! Come back tomorrow for the next Wordle.');
@@ -276,6 +295,7 @@ class DiscordBot {
         response += `• One submission per day\n`;
         response += `• Achievement titles must start with the exact Wordle letters\n`;
         response += `• URLs must be from retroachievements.org\n`;
+        response += `• **NEW:** Achievements must be earned TODAY (same day as Wordle solution)\n`;
         response += `• All 5 achievements must be valid to earn a point`;
 
         await interaction.editReply(response);
