@@ -40,10 +40,11 @@ The application uses four main tables:
 - **botConfig**: Stores bot configuration key-value pairs
 
 ### Discord Bot Integration
-- **Command System**: Slash commands for user submissions
-- **Achievement Validation**: Validates RetroAchievements URLs against current Wordle solution and verifies achievements were earned on the same day
-- **User Management**: Automatic user creation and score tracking
+- **Command System**: 7 slash commands including user registration and submissions
+- **User Registration**: `/register` command allows users to link Discord accounts to RetroAchievements usernames
+- **Achievement Validation**: Validates RetroAchievements URLs against current Wordle solution using registered usernames
 - **Date Validation**: Ensures users can only submit achievements earned on the same day as the Wordle solution
+- **User Management**: Automatic user creation and score tracking with proper account linking
 
 ## Data Flow
 

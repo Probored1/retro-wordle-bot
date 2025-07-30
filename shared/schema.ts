@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   discordId: text("discord_id").notNull().unique(),
   username: text("username").notNull(),
+  retroAchievementsUsername: text("retro_achievements_username"),
   score: integer("score").default(0).notNull(),
   prizeEligible: boolean("prize_eligible").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

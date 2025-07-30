@@ -78,9 +78,21 @@ class DiscordBot {
                 continue;
               }
 
+              // Get or create user first to check for registered RA username
+              let user = await storage.getUserByDiscordId(interaction.user.id);
+              if (!user) {
+                user = await storage.createUser({
+                  discordId: interaction.user.id,
+                  username: interaction.user.username,
+                });
+              }
+
+              // Use registered RetroAchievements username or fallback to Discord username
+              const raUsername = user.retroAchievementsUsername || interaction.user.username;
+
               // Check if user earned this achievement today
               const validation = await retroAchievementsService.validateUserAchievementToday(
-                interaction.user.username, 
+                raUsername, 
                 url, 
                 today
               );
@@ -116,7 +128,7 @@ class DiscordBot {
 
           const isValid = errors.length === 0 && achievements.length === 5;
 
-          // Get or create user
+          // Get user (should already exist from validation loop)
           let user = await storage.getUserByDiscordId(interaction.user.id);
           if (!user) {
             user = await storage.createUser({
@@ -209,7 +221,13 @@ class DiscordBot {
           response += `**Score:** ${user.score}/30\n`;
           response += `**Successful Submissions:** ${successfulSubmissions}\n`;
           response += `**Total Submissions:** ${totalSubmissions}\n`;
-          response += `**Success Rate:** ${totalSubmissions > 0 ? Math.round((successfulSubmissions / totalSubmissions) * 100) : 0}%\n`;
+          
+          if (user.retroAchievementsUsername) {
+            response += `**RetroAchievements Username:** ${user.retroAchievementsUsername}\n`;
+          } else {
+            response += `**RetroAchievements Username:** Not registered (using Discord username)\n`;
+            response += `*Use \`/register\` to link your RetroAchievements account*\n`;
+          }
           
           if (user.prizeEligible) {
             response += `\n🏆 **You are eligible for a prize!**`;
@@ -270,11 +288,12 @@ class DiscordBot {
       async execute(interaction: any) {
         let response = `🎮 **Wordle Achievement Event Help**\n\n`;
         response += `**How it works:**\n`;
-        response += `1. Each day, get the daily Wordle solution\n`;
-        response += `2. Find 5 achievements on RetroAchievements.org whose titles start with each letter of the Wordle\n`;
-        response += `3. Use \`/submit\` with the 5 achievement URLs\n`;
-        response += `4. Earn +1 point for each valid submission\n`;
-        response += `5. Reach 30 points to become eligible for a prize!\n\n`;
+        response += `1. First, use \`/register\` to link your RetroAchievements username\n`;
+        response += `2. Each day, get the daily Wordle solution\n`;
+        response += `3. Find 5 achievements on RetroAchievements.org whose titles start with each letter of the Wordle\n`;
+        response += `4. Use \`/submit\` with the 5 achievement URLs\n`;
+        response += `5. Earn +1 point for each valid submission\n`;
+        response += `6. Reach 30 points to become eligible for a prize!\n\n`;
         
         response += `**Example:**\n`;
         response += `If today's Wordle is "GAMES":\n`;
@@ -285,6 +304,7 @@ class DiscordBot {
         response += `• S: "Speed Run" achievement\n\n`;
         
         response += `**Commands:**\n`;
+        response += `• \`/register\` - Link your RetroAchievements username\n`;
         response += `• \`/submit\` - Submit your 5 achievements\n`;
         response += `• \`/stats\` - View your progress\n`;
         response += `• \`/leaderboard\` - See top participants\n`;
@@ -372,12 +392,59 @@ class DiscordBot {
       }
     };
 
+    // Register command
+    const registerCommand = {
+      data: new SlashCommandBuilder()
+        .setName('register')
+        .setDescription('Link your Discord account to your RetroAchievements username')
+        .addStringOption(option =>
+          option.setName('username')
+            .setDescription('Your RetroAchievements username')
+            .setRequired(true)),
+      async execute(interaction: any) {
+        await interaction.deferReply({ ephemeral: true });
+
+        try {
+          const raUsername = interaction.options.getString('username');
+          
+          // Validate username format (basic check)
+          if (!raUsername || raUsername.length < 2 || raUsername.length > 50) {
+            await interaction.editReply('❌ Please provide a valid RetroAchievements username (2-50 characters).');
+            return;
+          }
+
+          // Get or create user
+          let user = await storage.getUserByDiscordId(interaction.user.id);
+          if (!user) {
+            user = await storage.createUser({
+              discordId: interaction.user.id,
+              username: interaction.user.username,
+            });
+          }
+
+          // Update RetroAchievements username
+          await storage.updateUserRetroAchievementsUsername(user.id, raUsername);
+
+          let response = `✅ **Registration successful!**\n\n`;
+          response += `Your Discord account is now linked to RetroAchievements username: **${raUsername}**\n\n`;
+          response += `This username will be used to validate that you earned achievements on the correct day when using \`/submit\`.\n\n`;
+          response += `You can update this anytime by running \`/register\` again with a different username.`;
+
+          await interaction.editReply(response);
+        } catch (error) {
+          console.error('Error registering user:', error);
+          await interaction.editReply('❌ An error occurred while registering your RetroAchievements username. Please try again later.');
+        }
+      }
+    };
+
     this.commands.set('submit', submitCommand);
     this.commands.set('stats', statsCommand);
     this.commands.set('leaderboard', leaderboardCommand);
     this.commands.set('help', helpCommand);
     this.commands.set('wordle', wordleCommand);
     this.commands.set('reset', resetCommand);
+    this.commands.set('register', registerCommand);
   }
 
   private setupEventHandlers() {

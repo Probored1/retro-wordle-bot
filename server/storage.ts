@@ -22,6 +22,7 @@ interface IStorage {
   getUserByDiscordId(discordId: string): Promise<User | undefined>;
   createUser(insertUser: InsertUser): Promise<User>;
   updateUserScore(userId: string, score: number, prizeEligible: boolean): Promise<void>;
+  updateUserRetroAchievementsUsername(userId: string, retroUsername: string): Promise<void>;
   
   // Submission methods
   createSubmission(insertSubmission: InsertSubmission): Promise<Submission>;
@@ -78,6 +79,13 @@ export class DatabaseStorage implements IStorage {
         prizeEligible, 
         lastSubmission: new Date() 
       })
+      .where(eq(users.id, userId));
+  }
+
+  async updateUserRetroAchievementsUsername(userId: string, retroUsername: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ retroAchievementsUsername: retroUsername })
       .where(eq(users.id, userId));
   }
 
