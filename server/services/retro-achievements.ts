@@ -71,19 +71,19 @@ class RetroAchievementsService {
 
       console.log(`Fetching achievement ${achievementId} from RetroAchievements API...`);
       
-      const response = await axios.get(`${this.baseUrl}/API_GetAchievementInfo.php`, {
+      const response = await axios.get(`${this.baseUrl}/API_GetAchievementUnlocks.php`, {
         params: {
           ...this.getAuthParams(),
-          i: achievementId
+          a: achievementId
         },
         timeout: 10000
       });
 
       console.log('RetroAchievements API response:', JSON.stringify(response.data, null, 2));
 
-      // The API_GetAchievementInfo.php returns the achievement data directly
-      if (response.data && response.data.ID) {
-        const achievement = response.data;
+      // The API_GetAchievementUnlocks.php returns the achievement data in the Achievement field
+      if (response.data && response.data.Achievement && response.data.Achievement.ID) {
+        const achievement = response.data.Achievement;
         return {
           id: achievement.ID.toString(),
           title: achievement.Title,
@@ -138,16 +138,16 @@ class RetroAchievementsService {
 
       console.log('Achievement unlocks response:', JSON.stringify(response.data, null, 2));
 
-      if (response.data && response.data.RecentWinners) {
-        const recentWinners = response.data.RecentWinners || [];
+      if (response.data && response.data.Unlocks) {
+        const unlocks = response.data.Unlocks || [];
         
-        console.log(`Checking ${recentWinners.length} recent winners for user ${username} on ${targetDate}`);
+        console.log(`Checking ${unlocks.length} unlocks for user ${username} on ${targetDate}`);
         
         // Check if the user earned this achievement on the target date
-        const userUnlock = recentWinners.find((winner: any) => {
-          const matchesUser = winner.User === username;
-          const matchesDate = winner.DateEarned?.startsWith(targetDate);
-          console.log(`Winner: ${winner.User}, Date: ${winner.DateEarned}, Matches User: ${matchesUser}, Matches Date: ${matchesDate}`);
+        const userUnlock = unlocks.find((unlock: any) => {
+          const matchesUser = unlock.User === username;
+          const matchesDate = unlock.DateAwarded?.startsWith(targetDate);
+          console.log(`Unlock: ${unlock.User}, Date: ${unlock.DateAwarded}, Matches User: ${matchesUser}, Matches Date: ${matchesDate}`);
           return matchesUser && matchesDate;
         });
         
@@ -156,7 +156,7 @@ class RetroAchievementsService {
         return result;
       }
 
-      console.log('No RecentWinners found in response');
+      console.log('No Unlocks found in response');
       return false;
     } catch (error) {
       console.error('Error checking user achievement unlock date:', error);
