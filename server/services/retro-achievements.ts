@@ -71,19 +71,20 @@ class RetroAchievementsService {
 
       console.log(`Fetching achievement ${achievementId} from RetroAchievements API...`);
       
-      const response = await axios.get(`${this.baseUrl}/API_GetAchievementInfo.php`, {
+      // Use the correct endpoint: API_GetAchievementUnlocks.php
+      const response = await axios.get(`${this.baseUrl}/API_GetAchievementUnlocks.php`, {
         params: {
           ...this.getAuthParams(),
-          i: achievementId
+          a: achievementId
         },
         timeout: 10000
       });
 
       console.log('RetroAchievements API response:', JSON.stringify(response.data, null, 2));
 
-      // The API_GetAchievementInfo.php returns the achievement data directly
-      if (response.data && response.data.ID) {
-        const achievement = response.data;
+      // The API_GetAchievementUnlocks.php returns achievement data in the Achievement field
+      if (response.data && response.data.Achievement) {
+        const achievement = response.data.Achievement;
         return {
           id: achievement.ID.toString(),
           title: achievement.Title,
